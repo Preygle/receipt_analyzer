@@ -1,3 +1,5 @@
 Flask
 boto3
 Werkzeug
+authlib
+requests

@@ -3,7 +3,7 @@ import json
 
 # ---------- CONFIGURATION ----------
 REGION = "us-east-1"  # Change if needed
-MODEL_ID = "anthropic.claude-v2" # Titan Text G1 - Express
+MODEL_ID = "anthropic.claude-3-sonnet-20240229-v1:0"
 # ----------------------------------
 
 # Initialize the Bedrock client
@@ -13,20 +13,24 @@ def classify_transaction(transaction_data):
     """Classify a transaction into a category using Amazon Bedrock."""
 
     # Create a prompt for the model
-    prompt = f"""Human: Based on the following JSON data from a receipt, please classify this transaction into one of these categories: Restaurant, Groceries, Transportation, Shopping, Utilities, Entertainment, or Other.
+    prompt = f"""Based on the following JSON data from a receipt, please classify this transaction into one of these categories: Restaurant, Groceries, Transportation, Shopping, Utilities, Entertainment, or Other.
 
     <transaction_data>
     {json.dumps(transaction_data, indent=2)}
     </transaction_data>
 
-    Assistant: The category is:"""
+    The category is:"""
 
     # Prepare the request body
     body = json.dumps({
-        "prompt": prompt,
-        "max_tokens_to_sample": 100,
-        "temperature": 0.1,
-        "top_p": 0.9,
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": 100,
+        "messages": [
+            {
+                "role": "user",
+                "content": [{ "type": "text", "text": prompt}]
+            }
+        ]
     })
 
     print("🤖 Sending data to Bedrock for classification...")
@@ -41,7 +45,7 @@ def classify_transaction(transaction_data):
 
     # Parse the response
     response_body = json.loads(response.get("body").read())
-    completion = response_body.get("completion", "").strip()
+    completion = response_body.get('content', [{}])[0].get('text', '').strip()
 
     # Extract the category (this is a simple example, you might need more robust parsing)
     category = completion.split("The category is:")[-1].strip()

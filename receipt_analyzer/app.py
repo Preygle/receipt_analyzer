@@ -1,29 +1,62 @@
-
 import os
 import tempfile
+import re
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.utils import secure_filename
 import boto3
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
+from decimal import Decimal
 from extract_receipt import extract_receipt_data
 from classifier import classify_transaction
+from authlib.integrations.flask_client import OAuth
 
+# ------------------- CONFIG -------------------
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# Hardcoded users
-USERS = {
-    "user1": "password",
-    "user2": "password",
-    "user3": "password"
-}
+# AWS Config
+REGION = "us-east-1"  # change if needed
+S3_BUCKET = "app-static-assets-1746"  # ✅ your S3 bucket
+DYNAMODB_TABLE = "receipt_data"       # ✅ your DynamoDB table
 
-import tempfile
-
-DYNAMODB_TABLE = 'ReceiptsTable'  # Replace with your DynamoDB table name
-dynamodb = boto3.resource('dynamodb')
+# Initialize AWS clients
+s3 = boto3.client("s3", region_name=REGION)
+dynamodb = boto3.resource("dynamodb", region_name=REGION)
 table = dynamodb.Table(DYNAMODB_TABLE)
+
+# Cognito Config
+oauth = OAuth(app)
+oauth.register(
+  name='oidc',
+  authority='https://cognito-idp.us-east-1.amazonaws.com/us-east-1_jDi7cPq3E',
+  client_id='65ldrp82mmqi7ua22r1chl4jej',
+  # 🚨 Replace with your client secret
+  client_secret='1ld338p8jrge2dt7vimbk6ude3sum2maa3kf64p8l1qv7p9jq7eh',
+  server_metadata_url='https://cognito-idp.us-east-1.amazonaws.com/us-east-1_jDi7cPq3E/.well-known/openid-configuration',
+  client_kwargs={'scope': 'email openid phone'}
+)
+# ------------------------------------------------
+
+@app.route('/login')
+def login():
+    redirect_uri = url_for('authorize', _external=True)
+    return oauth.oidc.authorize_redirect(redirect_uri)
+
+@app.route('/authorize')
+def authorize():
+    token = oauth.oidc.authorize_access_token()
+    user = token['userinfo']
+    session['user'] = user
+    return redirect(url_for('dashboard'))
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    # Redirect to Cognito to log out from there as well
+    logout_url = oauth.oidc.server_metadata['end_session_endpoint']
+    # The user will be redirected back to the home page after logging out from Cognito
+    return redirect(f"{logout_url}?client_id={oauth.oidc.client_id}&logout_uri={url_for('home', _external=True)}")
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
@@ -38,10 +71,14 @@ def upload():
             return redirect(request.url)
         if file:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"receipt_{timestamp}.{file.filename.rsplit('.', 1)[1].lower()}"
+            file_ext = file.filename.rsplit('.', 1)[1].lower()
+            filename = f"receipt_{timestamp}.{file_ext}"
+
             try:
+                # ✅ Upload to S3
                 s3.upload_fileobj(file, S3_BUCKET, filename)
-                
+
+                # ✅ Read back from S3 for Textract
                 s3_object = s3.get_object(Bucket=S3_BUCKET, Key=filename)
                 image_bytes = s3_object['Body'].read()
 
@@ -53,16 +90,25 @@ def upload():
                     extracted_data = extract_receipt_data(tmp_image_path)
 
                 if not extracted_data:
-                    return "Could not extract data from receipt", 400
+                    return "❌ Could not extract data from receipt", 400
 
                 classification = classify_transaction(extracted_data[0])
 
                 receipt_id = filename.split('.')[0]
-                user = session['user']
+                user = session['user']['sub'] # Using the user's unique ID from Cognito
                 date = extracted_data[0].get('date')
                 category = classification.get('category')
-                total = extracted_data[0].get('total')
-                items = extracted_data[0].get('items')
+
+                total_str = extracted_data[0].get('total', '0')
+                total_cleaned = re.sub(r'[^\d.]', '', total_str)
+                total = Decimal(total_cleaned) if total_cleaned else Decimal('0')
+
+                items = extracted_data[0].get('items', [])
+                for item in items:
+                    price_str = item.get('price', '0')
+                    price_cleaned = re.sub(r'[^\d.]', '', price_str)
+                    item['price'] = Decimal(price_cleaned) if price_cleaned else Decimal('0')
+
 
                 table.put_item(
                     Item={
@@ -76,39 +122,26 @@ def upload():
                 )
 
             except Exception as e:
-                # Handle S3 upload error
                 print(f"Error: {e}")
-                return f"Error: {e}", 500
+                return f"Error uploading or processing receipt: {e}", 500
+
             return redirect(url_for('dashboard'))
 
     return render_template('upload.html')
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = None
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if username in USERS and USERS[username] == password:
-            session['user'] = username
-            return redirect(url_for('upload'))
-        else:
-            error = 'Invalid username or password'
-    return render_template('login.html', error=error)
-
 @app.route('/')
 def home():
-    return redirect(url_for('login'))
-
-from datetime import datetime, timedelta
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('login.html')
 
 @app.route('/dashboard')
 def dashboard():
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    user = session['user']
-    period = request.args.get('period', '7')  # Default to last 7 days
+    user = session['user']['sub'] # Using the user's unique ID from Cognito
+    period = request.args.get('period', '7')  # Default: last 7 days
 
     end_date = datetime.now()
     if period == '7':
@@ -126,31 +159,37 @@ def dashboard():
     end_date_str = end_date.strftime('%Y-%m-%d')
 
     try:
+        # ✅ Query DynamoDB by user and date range
         response = table.query(
             IndexName='user-index',
-            KeyConditionExpression=boto3.dynamodb.conditions.Key('user').eq(user) & boto3.dynamodb.conditions.Key('date').between(start_date_str, end_date_str)
+            KeyConditionExpression=boto3.dynamodb.conditions.Key('user').eq(user) &
+            boto3.dynamodb.conditions.Key('date').between(
+                start_date_str, end_date_str)
         )
         receipts = response.get('Items', [])
     except Exception as e:
         print(f"Error fetching from DynamoDB: {e}")
-        # Fallback to querying only by user if date range query fails
         try:
             response = table.query(
                 IndexName='user-index',
-                KeyConditionExpression=boto3.dynamodb.conditions.Key('user').eq(user)
+                KeyConditionExpression=boto3.dynamodb.conditions.Key(
+                    'user').eq(user)
             )
             receipts = response.get('Items', [])
         except Exception as e2:
-            print(f"Error fetching from DynamoDB by user only: {e2}")
+            print(f"Error fetching by user only: {e2}")
             receipts = []
 
+    # Convert Decimals to strings for JSON serialization
+    for receipt in receipts:
+        if 'total' in receipt:
+            receipt['total'] = str(receipt['total'])
+        if 'items' in receipt:
+            for item in receipt['items']:
+                if 'price' in item:
+                    item['price'] = str(item['price'])
 
     return render_template('dashboard.html', receipts=receipts)
-
-@app.route('/logout')
-def logout():
-    session.pop('user', None)
-    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)
