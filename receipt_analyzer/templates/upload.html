@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Receipt</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Receipt</h1>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="receipt" accept="image/*" required>
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+</body>
+</html>

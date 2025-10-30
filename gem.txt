@@ -1,0 +1,110 @@
+🎯 Objective
+
+Build a simple Flask-based receipt analyzer website hosted on AWS that lets users upload receipt images, automatically extracts structured data (item–price pairs) using my existing extract_receipt.py, classifies each receipt into categories using my existing classifier.py, and stores + visualizes spending summaries over time.
+
+🧩 Existing Components
+
+You must integrate the following scripts (already created and working):
+
+extract_receipt.py
+
+Uses AWS Textract to parse uploaded receipt images.
+
+Extracts structured JSON data in the form:
+
+{
+  "vendor": "string",
+  "date": "YYYY-MM-DD",
+  "total": "123.45",
+  "items": [
+    {"description": "Item name", "price": "value"},
+    ...
+  ]
+}
+
+
+classifier.py
+
+Uses Amazon Bedrock (Titan Text model) to classify the transaction.
+
+Returns category in JSON form:
+
+{"category": "<chosen_category>"}
+
+
+✅ Do not modify the internal logic of these two files.
+✅ Just import and use their main functions (e.g. extract_receipt(image_path) and classify_transaction(data)).
+
+🌐 Web App Requirements
+1️⃣ Flask App Structure
+
+Build a app.py Flask backend structured as follows:
+
+Routes
+
+/login – simple hardcoded login for three users (admin-created)
+
+/upload – upload receipt (image form)
+
+/dashboard – show categorized and summarized receipts
+
+Flow
+
+User logs in → redirected to /upload
+
+User uploads a receipt image:
+
+Save to S3 bucket (with timestamp-based filename: receipt_YYYYMMDD_HHMMSS.jpg)
+
+Call extract_receipt.py → structured JSON output
+
+Call classifier.py → get category JSON
+
+Store all results in DynamoDB with schema below
+
+/dashboard fetches user’s receipts and:
+
+Displays table of:
+| Receipt Name | Category | Total | Date |
+
+Shows totals per category and overall spending
+
+Default view = last 7 days (options for 30 days, month, or year)
+
+Optional spending bar/pie chart (Chart.js)
+
+💾 DynamoDB Schema
+
+Table: ReceiptsTable
+
+Key	Type	Example
+receipt_id	String	"receipt_20251030_222311"
+user	String	"user1"
+date	String	"2025-10-30"
+category	String	"Restaurant"
+total	Number	175000
+items	List	[{"item":"Ham Cheese","price":74000},...]
+☁️ AWS Architecture
+Function	Service	Description
+Hosting	Elastic Beanstalk	Deploy Flask app
+Storage	Amazon S3	Store uploaded images
+OCR	AWS Textract	Used via extract_receipt.py
+Classification	Amazon Bedrock (Titan)	Used via classifier.py
+Database	DynamoDB	Store structured data
+Auth	Flask local auth	3 fixed users
+📁 Project Folder Structure
+receipt_analyzer/
+│
+├── app.py
+├── extract_receipt.py
+├── classifier.py
+├── requirements.txt
+│
+├── templates/
+│   ├── login.html
+│   ├── upload.html
+│   └── dashboard.html
+│
+└── static/
+    ├── style.css
+    └── chart.js

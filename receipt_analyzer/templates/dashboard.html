@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard</h1>
+        <p>Welcome, {{ session['user'] }}!</p>
+        <a href="{{ url_for('logout') }}">Logout</a>
+
+        <div class="filters">
+            <a href="{{ url_for('dashboard', period='7') }}">Last 7 Days</a>
+            <a href="{{ url_for('dashboard', period='30') }}">Last 30 Days</a>
+            <a href="{{ url_for('dashboard', period='month') }}">This Month</a>
+            <a href="{{ url_for('dashboard', period='year') }}">This Year</a>
+        </div>
+
+        <h2>Receipts</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Receipt Name</th>
+                    <th>Category</th>
+                    <th>Total</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for receipt in receipts %}
+                <tr>
+                    <td>{{ receipt.receipt_id }}</td>
+                    <td>{{ receipt.category }}</td>
+                    <td>{{ receipt.total }}</td>
+                    <td>{{ receipt.date }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>Spending Summary</h2>
+        <div class="summary">
+            <div class="chart-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
+            <div class="totals">
+                <h3>Total Spending per Category</h3>
+                <ul id="categoryTotals"></ul>
+                <h3>Overall Total</h3>
+                <p id="overallTotal"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='chart.js') }}"></script>
+    <script>
+        const receipts = {{ receipts | tojson }};
+        createChart(receipts);
+    </script>
+</body>
+</html>
