@@ -4,7 +4,9 @@ function createChart(receipts) {
 
     receipts.forEach(receipt => {
         const category = receipt.category || 'Uncategorized';
-        const total = parseFloat(receipt.total.replace(/[^\d.-]/g, ''));
+        // Backend sends numeric string (e.g., "12.34"); be robust to currency symbols
+        const totalString = typeof receipt.total === 'string' ? receipt.total : String(receipt.total ?? '0');
+        const total = parseFloat(totalString.replace(/[^\d.-]/g, ''));
 
         if (!isNaN(total)) {
             if (category in categoryTotals) {

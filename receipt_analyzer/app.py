@@ -1,7 +1,8 @@
 import os
 import tempfile
 import re
-from flask import Flask, render_template, request, redirect, url_for, session
+import logging
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.utils import secure_filename
 import boto3
 from datetime import datetime, timedelta
@@ -9,77 +10,80 @@ import json
 from decimal import Decimal
 from extract_receipt import extract_receipt_data
 from classifier import classify_transaction
-from authlib.integrations.flask_client import OAuth
+from dotenv import load_dotenv
+
+load_dotenv()
+
+"""
+Configuration is centralized via environment variables. Create a .env file locally
+and export these values in production.
+
+Required env vars (examples):
+  AWS_REGION=us-east-1
+  S3_BUCKET=your-receipts-bucket-name  # TODO: replace with your S3 bucket name
+  DYNAMODB_TABLE=your-dynamodb-table-name  # TODO: replace with your DynamoDB table
+  FLASK_SECRET_KEY=dev-secret
+"""
 
 # ------------------- CONFIG -------------------
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.getenv("FLASK_SECRET_KEY", os.urandom(24))
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # AWS Config
-REGION = "us-east-1"  # change if needed
-S3_BUCKET = "app-static-assets-1746"  # ✅ your S3 bucket
-DYNAMODB_TABLE = "receipt_data"       # ✅ your DynamoDB table
+REGION = os.getenv("AWS_REGION", "us-east-1")
+S3_BUCKET = os.getenv("S3_BUCKET", "your-receipts-bucket-name")  # TODO: set your bucket
+DYNAMODB_TABLE = os.getenv("DYNAMODB_TABLE", "your-dynamodb-table-name")  # TODO: set your table
 
 # Initialize AWS clients
 s3 = boto3.client("s3", region_name=REGION)
 dynamodb = boto3.resource("dynamodb", region_name=REGION)
 table = dynamodb.Table(DYNAMODB_TABLE)
 
-# Cognito Config
-oauth = OAuth(app)
-oauth.register(
-  name='oidc',
-  authority='https://cognito-idp.us-east-1.amazonaws.com/us-east-1_jDi7cPq3E',
-  client_id='65ldrp82mmqi7ua22r1chl4jej',
-  # 🚨 Replace with your client secret
-  client_secret='1ld338p8jrge2dt7vimbk6ude3sum2maa3kf64p8l1qv7p9jq7eh',
-  server_metadata_url='https://cognito-idp.us-east-1.amazonaws.com/us-east-1_jDi7cPq3E/.well-known/openid-configuration',
-  client_kwargs={'scope': 'email openid phone'}
-)
 # ------------------------------------------------
 
-@app.route('/login')
-def login():
-    redirect_uri = url_for('authorize', _external=True)
-    return oauth.oidc.authorize_redirect(redirect_uri)
 
-@app.route('/authorize')
-def authorize():
-    token = oauth.oidc.authorize_access_token()
-    user = token['userinfo']
-    session['user'] = user
-    return redirect(url_for('dashboard'))
-
-@app.route('/logout')
-def logout():
-    session.pop('user', None)
-    # Redirect to Cognito to log out from there as well
-    logout_url = oauth.oidc.server_metadata['end_session_endpoint']
-    # The user will be redirected back to the home page after logging out from Cognito
-    return redirect(f"{logout_url}?client_id={oauth.oidc.client_id}&logout_uri={url_for('home', _external=True)}")
+@app.route('/test_dynamo')
+def test_dynamo():
+    try:
+        response = table.scan(Limit=1)
+        return jsonify({"status": "success", "count": len(response.get('Items', []))})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-
     if request.method == 'POST':
+        logging.info("--- Upload request received ---")
         if 'receipt' not in request.files:
+            logging.warning("No file part in request")
             return redirect(request.url)
         file = request.files['receipt']
         if file.filename == '':
+            logging.warning("No selected file")
             return redirect(request.url)
         if file:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             file_ext = file.filename.rsplit('.', 1)[1].lower()
+            logging.info(f"File received: {file.filename}")
+            if file_ext not in ['jpg', 'jpeg', 'png', 'pdf']:
+                logging.warning(f"Unsupported file format: {file_ext}")
+                return "❌ Unsupported file format. Please upload a JPG, PNG, or PDF.", 400
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"receipt_{timestamp}.{file_ext}"
 
             try:
                 # ✅ Upload to S3
-                s3.upload_fileobj(file, S3_BUCKET, filename)
+                s3_key = f"receipts/{filename}"
+                logging.info(f"Uploading to S3 bucket '{S3_BUCKET}' with key '{s3_key}'")
+                s3.upload_fileobj(file, S3_BUCKET, s3_key)
+                logging.info("S3 upload successful")
 
                 # ✅ Read back from S3 for Textract
-                s3_object = s3.get_object(Bucket=S3_BUCKET, Key=filename)
+                logging.info("Reading file back from S3 for processing")
+                s3_object = s3.get_object(Bucket=S3_BUCKET, Key=s3_key)
                 image_bytes = s3_object['Body'].read()
 
                 with tempfile.TemporaryDirectory() as tmpdir:
@@ -87,16 +91,26 @@ def upload():
                     with open(tmp_image_path, "wb") as f:
                         f.write(image_bytes)
 
+                    logging.info("Starting receipt data extraction with Textract")
                     extracted_data = extract_receipt_data(tmp_image_path)
+                    logging.info(f"Extracted data: {json.dumps(extracted_data, indent=2)}")
 
                 if not extracted_data:
+                    logging.error("Could not extract data from receipt")
                     return "❌ Could not extract data from receipt", 400
 
+                logging.info("Starting transaction classification with Bedrock")
                 classification = classify_transaction(extracted_data[0])
+                logging.info(f"Classification result: {json.dumps(classification, indent=2)}")
 
                 receipt_id = filename.split('.')[0]
-                user = session['user']['sub'] # Using the user's unique ID from Cognito
-                date = extracted_data[0].get('date')
+                user = "local_user" # Hardcoded user for local use
+                date_str = extracted_data[0].get('date')
+                try:
+                    date = datetime.strptime(date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
+                except (ValueError, TypeError):
+                    date = datetime.now().strftime('%Y-%m-%d')
+
                 category = classification.get('category')
 
                 total_str = extracted_data[0].get('total', '0')
@@ -109,78 +123,54 @@ def upload():
                     price_cleaned = re.sub(r'[^\d.]', '', price_str)
                     item['price'] = Decimal(price_cleaned) if price_cleaned else Decimal('0')
 
+                item_to_save = {
+                    'receipt': receipt_id,
+                    'user': user,
+                    'date': date,
+                    'category': category,
+                    'total': total,
+                    'items': items,
+                    's3_key': s3_key
+                }
+                logging.info(f"Saving item to DynamoDB: {json.dumps(item_to_save, default=str, indent=2)}")
 
-                table.put_item(
-                    Item={
-                        'receipt_id': receipt_id,
-                        'user': user,
-                        'date': date,
-                        'category': category,
-                        'total': total,
-                        'items': items
-                    }
-                )
+                table.put_item(Item=item_to_save)
+                logging.info("Successfully saved item to DynamoDB")
 
             except Exception as e:
-                print(f"Error: {e}")
+                logging.error(f"An error occurred: {e}", exc_info=True)
                 return f"Error uploading or processing receipt: {e}", 500
 
+            logging.info("--- Upload request finished ---Redirecting to dashboard.")
             return redirect(url_for('dashboard'))
 
     return render_template('upload.html')
 
 @app.route('/')
 def home():
-    if 'user' in session:
-        return redirect(url_for('dashboard'))
-    return render_template('login.html')
+    return redirect(url_for('dashboard'))
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user' not in session:
-        return redirect(url_for('login'))
+    return render_template('dashboard.html')
 
-    user = session['user']['sub'] # Using the user's unique ID from Cognito
-    period = request.args.get('period', '7')  # Default: last 7 days
-
-    end_date = datetime.now()
-    if period == '7':
-        start_date = end_date - timedelta(days=7)
-    elif period == '30':
-        start_date = end_date - timedelta(days=30)
-    elif period == 'month':
-        start_date = end_date.replace(day=1)
-    elif period == 'year':
-        start_date = end_date.replace(month=1, day=1)
-    else:
-        start_date = end_date - timedelta(days=7)
-
-    start_date_str = start_date.strftime('%Y-%m-%d')
-    end_date_str = end_date.strftime('%Y-%m-%d')
+@app.route('/api/receipts')
+def api_receipts():
+    user = "local_user" # Hardcoded user for local use
 
     try:
-        # ✅ Query DynamoDB by user and date range
+        # ✅ Scan DynamoDB for all receipts by user
         response = table.query(
             IndexName='user-index',
-            KeyConditionExpression=boto3.dynamodb.conditions.Key('user').eq(user) &
-            boto3.dynamodb.conditions.Key('date').between(
-                start_date_str, end_date_str)
+            KeyConditionExpression=boto3.dynamodb.conditions.Key('user').eq(user)
         )
         receipts = response.get('Items', [])
+        logging.info(f"Receipts from DynamoDB: {json.dumps(receipts, default=str, indent=2)}")
     except Exception as e:
         print(f"Error fetching from DynamoDB: {e}")
-        try:
-            response = table.query(
-                IndexName='user-index',
-                KeyConditionExpression=boto3.dynamodb.conditions.Key(
-                    'user').eq(user)
-            )
-            receipts = response.get('Items', [])
-        except Exception as e2:
-            print(f"Error fetching by user only: {e2}")
-            receipts = []
+        receipts = []
 
-    # Convert Decimals to strings for JSON serialization
+    # Convert Decimals to strings for JSON serialization and add pre-signed URLs
     for receipt in receipts:
         if 'total' in receipt:
             receipt['total'] = str(receipt['total'])
@@ -188,8 +178,13 @@ def dashboard():
             for item in receipt['items']:
                 if 'price' in item:
                     item['price'] = str(item['price'])
+        if 's3_key' in receipt:
+            receipt['s3_url'] = s3.generate_presigned_url('get_object',
+                                                                  Params={'Bucket': S3_BUCKET,
+                                                                          'Key': receipt['s3_key']},
+                                                                  ExpiresIn=3600)
 
-    return render_template('dashboard.html', receipts=receipts)
+    return jsonify(receipts)
 
 
 if __name__ == '__main__':

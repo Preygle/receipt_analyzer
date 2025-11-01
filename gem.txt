@@ -1,15 +1,150 @@
 PS C:\Users\moham\Documents\PROGRAMMING\aws_tests\receipt_analyzer> python .\app.py
-Traceback (most recent call last):
-  File "C:\Users\moham\Documents\PROGRAMMING\aws_tests\receipt_analyzer\app.py", line 212, in <module>
-    @app.route('/logout')
-     ~~~~~~~~~^^^^^^^^^^^
-  File "C:\Users\moham\AppData\Roaming\Python\Python313\site-packages\flask\sansio\scaffold.py", line 362, in decorator
-    self.add_url_rule(rule, endpoint, f, **options)
-    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\moham\AppData\Roaming\Python\Python313\site-packages\flask\sansio\scaffold.py", line 47, in wrapper_func
-    return f(self, *args, **kwargs)
-  File "C:\Users\moham\AppData\Roaming\Python\Python313\site-packages\flask\sansio\app.py", line 657, in add_url_rule
-    raise AssertionError(
-    ...<2 lines>...
-    )
-AssertionError: View function mapping is overwriting an existing endpoint function: logout
+ * Serving Flask app 'app'
+ * Debug mode: on
+2025-11-01 23:54:07,888 - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.20.162.192:5000
+2025-11-01 23:54:07,888 - INFO - Press CTRL+C to quit
+2025-11-01 23:54:07,898 - INFO -  * Restarting with watchdog (windowsapi)
+2025-11-01 23:54:08,744 - WARNING -  * Debugger is active!
+2025-11-01 23:54:08,750 - INFO -  * Debugger PIN: 139-330-937
+2025-11-01 23:54:11,652 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:11] "GET / HTTP/1.1" 302 -
+2025-11-01 23:54:11,670 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:11] "GET /dashboard HTTP/1.1" 200 -
+2025-11-01 23:54:11,790 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:11] "GET /static/style.css HTTP/1.1" 304 -
+2025-11-01 23:54:11,799 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:11] "GET /static/camera.js HTTP/1.1" 304 -
+2025-11-01 23:54:11,799 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:11] "GET /static/chart.js HTTP/1.1" 304 -
+2025-11-01 23:54:13,350 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:13,350 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:13] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:13,791 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:13] "GET /dashboard HTTP/1.1" 200 -
+2025-11-01 23:54:13,816 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:13] "GET /static/style.css HTTP/1.1" 304 -
+2025-11-01 23:54:13,819 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:13] "GET /static/chart.js HTTP/1.1" 304 -
+2025-11-01 23:54:13,820 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:13] "GET /static/camera.js HTTP/1.1" 304 -
+2025-11-01 23:54:14,110 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:14,110 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:14] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:18,886 - INFO - --- Upload request received ---
+2025-11-01 23:54:18,887 - INFO - File received: receipt2.jpg
+2025-11-01 23:54:18,888 - INFO - Uploading to S3 bucket 'app-static-assets-1746' with key 'receipts/receipt_20251101_235418.jpg'
+2025-11-01 23:54:19,114 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:19,114 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:19] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:22,792 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:22,792 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:22] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:23,057 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:23,058 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:23] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:24,776 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:24,777 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:24] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:29,551 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:29,551 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:29] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:34,308 - INFO - S3 upload successful
+2025-11-01 23:54:34,308 - INFO - Reading file back from S3 for processing
+2025-11-01 23:54:34,808 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:34,809 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:34] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:35,417 - INFO - Starting receipt data extraction with Textract
+🧾 Sending image to Textract for analysis...
+2025-11-01 23:54:39,551 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:39,551 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:39] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:40,832 - INFO - Extracted data: [
+  {
+    "vendor": "MOMI E. TOY'S\nCR\u00caPERIE",
+    "date": "26/01/2015",
+    "total": "175,000",
+    "items": [
+      {
+        "description": "Woman",
+        "price": "0"
+      },
+      {
+        "description": "Ham Cheese",
+        "price": "74,000"
+      },
+      {
+        "description": "Ice Java Tea",
+        "price": "16,000"
+      },
+      {
+        "description": "Mineral Water",
+        "price": "13,000"
+      },
+      {
+        "description": "Black & White",
+        "price": "72,000"
+      }
+    ]
+  }
+]
+2025-11-01 23:54:40,834 - INFO - Starting transaction classification with Bedrock
+🤖 Sending data to Bedrock for classification...
+2025-11-01 23:54:42,582 - INFO - Classification result: {
+  "category": "Restaurant"
+}
+2025-11-01 23:54:42,582 - INFO - Saving item to DynamoDB: {
+  "receipt": "receipt_20251101_235418",
+  "user": "local_user",
+  "date": "26/01/2015",
+  "category": "Restaurant",
+  "total": "175000",
+  "items": [
+    {
+      "description": "Woman",
+      "price": "0"
+    },
+    {
+      "description": "Ham Cheese",
+      "price": "74000"
+    },
+    {
+      "description": "Ice Java Tea",
+      "price": "16000"
+    },
+    {
+      "description": "Mineral Water",
+      "price": "13000"
+    },
+    {
+      "description": "Black & White",
+      "price": "72000"
+    }
+  ],
+  "s3_key": "receipts/receipt_20251101_235418.jpg"
+}
+2025-11-01 23:54:42,862 - INFO - Successfully saved item to DynamoDB
+2025-11-01 23:54:42,862 - INFO - --- Upload request finished ---Redirecting to dashboard.
+2025-11-01 23:54:42,863 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:42] "POST /upload HTTP/1.1" 302 -
+2025-11-01 23:54:42,869 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:42] "GET /dashboard HTTP/1.1" 200 -
+2025-11-01 23:54:42,896 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:42] "GET /static/style.css HTTP/1.1" 304 -
+2025-11-01 23:54:42,897 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:42] "GET /static/chart.js HTTP/1.1" 304 -
+2025-11-01 23:54:42,897 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:42] "GET /static/camera.js HTTP/1.1" 304 -
+2025-11-01 23:54:43,192 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:43,193 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:43] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:48,196 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:48,196 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:48] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:48,964 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:48] "GET /dashboard HTTP/1.1" 200 -
+2025-11-01 23:54:48,992 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:48] "GET /static/style.css HTTP/1.1" 304 -
+2025-11-01 23:54:48,995 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:48] "GET /static/chart.js HTTP/1.1" 304 -
+2025-11-01 23:54:48,996 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:48] "GET /static/camera.js HTTP/1.1" 304 -
+2025-11-01 23:54:49,285 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:49,285 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:49] "GET /api/receipts?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:50,070 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /dashboard?period=30 HTTP/1.1" 200 -
+2025-11-01 23:54:50,099 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /static/style.css HTTP/1.1" 304 -
+2025-11-01 23:54:50,102 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /static/chart.js HTTP/1.1" 304 -
+2025-11-01 23:54:50,103 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /static/camera.js HTTP/1.1" 304 -
+2025-11-01 23:54:50,392 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:50,392 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /api/receipts?period=30 HTTP/1.1" 200 -
+2025-11-01 23:54:50,462 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /dashboard?period=month HTTP/1.1" 200 -
+2025-11-01 23:54:50,488 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /static/style.css HTTP/1.1" 304 -
+2025-11-01 23:54:50,491 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /static/chart.js HTTP/1.1" 304 -
+2025-11-01 23:54:50,492 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /static/camera.js HTTP/1.1" 304 -
+2025-11-01 23:54:50,741 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /dashboard?period=year HTTP/1.1" 200 -
+2025-11-01 23:54:50,769 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /static/style.css HTTP/1.1" 304 -
+2025-11-01 23:54:50,770 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /static/chart.js HTTP/1.1" 304 -
+2025-11-01 23:54:50,771 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /static/camera.js HTTP/1.1" 304 -
+2025-11-01 23:54:50,781 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:50,781 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:50] "GET /api/receipts?period=month HTTP/1.1" 200 -
+2025-11-01 23:54:51,030 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:51] "GET /dashboard?period=7 HTTP/1.1" 200 -
+2025-11-01 23:54:51,056 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:51] "GET /static/style.css HTTP/1.1" 304 -
+2025-11-01 23:54:51,057 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:51] "GET /static/chart.js HTTP/1.1" 304 -
+2025-11-01 23:54:51,058 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:51,059 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:51] "GET /api/receipts?period=year HTTP/1.1" 200 -
+2025-11-01 23:54:51,059 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:51] "GET /static/camera.js HTTP/1.1" 304 -
+2025-11-01 23:54:51,342 - INFO - Receipts from DynamoDB: []
+2025-11-01 23:54:51,343 - INFO - 127.0.0.1 - - [01/Nov/2025 23:54:51] "GET /api/receipts?period=7 HTTP/1.1" 200 -

@@ -13,13 +13,14 @@ def classify_transaction(transaction_data):
     """Classify a transaction into a category using Amazon Bedrock."""
 
     # Create a prompt for the model
-    prompt = f"""Based on the following JSON data from a receipt, please classify this transaction into one of these categories: Restaurant, Groceries, Transportation, Shopping, Utilities, Entertainment, or Other.
+    prompt = f"""Based on the following JSON data from a receipt, classify this transaction into one of these categories: Restaurant, Groceries, Transportation, Shopping, Utilities, Entertainment, or Other.
+    Your response MUST be a single word, which is one of the allowed categories. Do NOT include any other text, explanation, or punctuation.
 
     <transaction_data>
     {json.dumps(transaction_data, indent=2)}
     </transaction_data>
 
-    The category is:"""
+    Category:"""
 
     # Prepare the request body
     body = json.dumps({
@@ -47,8 +48,8 @@ def classify_transaction(transaction_data):
     response_body = json.loads(response.get("body").read())
     completion = response_body.get('content', [{}])[0].get('text', '').strip()
 
-    # Extract the category (this is a simple example, you might need more robust parsing)
-    category = completion.split("The category is:")[-1].strip()
+    # Extract the category (now expecting only the category name)
+    category = completion
 
     return {"category": category}
 
