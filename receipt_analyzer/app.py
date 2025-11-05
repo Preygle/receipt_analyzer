@@ -126,7 +126,7 @@ def upload():
 
                 receipt_id = filename.split('.')[0]
                 user = "local_user" # Hardcoded user for local use
-                now = datetime.now()
+                now = datetime.now() + timedelta(hours=5, minutes=30)
                 date = now.strftime('%Y-%m-%d')
 
                 time = now.strftime('%H:%M:%S')
