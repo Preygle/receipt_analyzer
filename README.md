@@ -1,17 +1,5 @@
 # Serverless Smart Receipt Analyzer & Expense Categorizer
 
-**Team:** CloudVision Pioneers  
-**Course:** Cloud Architecture Design (BCSE355L)  
-**Faculty:** Dr. Palani Thanaraj K
-
-| Student Name | Registration No. |
-|:---|:---|
-| Mohammad Owais | 23BCE1746 |
-| Achal Pramod Tripathi | 23BCE1734 |
-| Abhay Singh | 23BCE1075 |
-
----
-
 ## � Project Documentation
 This repository contains the source code and detailed documentation for the Smart Receipt Analyzer. Please refer to the specific guides below for in-depth configuration and setup details:
 
@@ -32,6 +20,10 @@ This repository contains the source code and detailed documentation for the Smar
 ### 🔹 [4. AI Services (Textract & Bedrock)](docs/ai_integration.md)
 *   OCR workflow using Amazon Textract `AnalyzeExpense`
 *   Generative AI Classification prompt engineering with Claude 3 (Bedrock)
+
+### 🔹 [5. Notifications (SNS + Lambda)](docs/notifications_setup.md)
+*   Daily account summary architecture
+*   Setup guide for EventBridge Cron, Lambda, and Email alerts
 
 ---
 
@@ -57,4 +49,4 @@ BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229
 ```
 
 ---
-*DA-3 Digital Assignment Submission*
+
